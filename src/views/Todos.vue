@@ -25,10 +25,11 @@
           <div class="modal-header">
             <h5
               class="modal-title">
-              TODO
+              Todo
             </h5>
 
             <button
+              @click="resetMaintenanceTodo()"
               type="button"
               class="btn-close"
               data-bs-dismiss="modal"
@@ -38,18 +39,37 @@
 
           <div class="modal-body">
             <form>
+              <div class="form-group">
+                <label>Id do Utilizador</label>
+                <input
+                  v-model="maintenanceTodo.userId"
+                  type="text"
+                  class="form-control"
+                  placeholder="Id do Utilizador" />
+              </div>
+
               <div class="form-group mt-4">
                 <label>Descrição</label>
                 <input
-                  type="date"
+                  v-model="maintenanceTodo.title"
+                  type="text"
                   class="form-control"
                   placeholder="Descrição" />
+              </div>
+
+              <div class="form-check mt-4">
+                <label>Realizada</label>
+                <input
+                  v-model="maintenanceTodo.completed"
+                  type="checkbox"
+                  class="form-check-input">
               </div>
             </form>
           </div>
 
           <div class="modal-footer">
             <button
+              @click="resetMaintenanceTodo()"
               ref="closeBtn"
               type="button"
               class="btn btn-secondary"
@@ -58,10 +78,19 @@
             </button>
 
             <button
-              @click="addExpense()"
+              v-if="!maintenanceTodo.id"
+              @click="addTodo()"
               type="button"
               class="btn btn-primary">
-              Guardar
+              Criar tarefa
+            </button>
+
+            <button
+              v-else
+              @click="editTodo()"
+              type="button"
+              class="btn btn-primary">
+              Editar tarefa
             </button>
           </div>
         </div>
@@ -80,6 +109,9 @@
               <th scope="col">Estado</th>
               <th scope="col">Criado a</th>
               <th scope="col">Atualizado a</th>
+              <th></th>
+              <th></th>
+              <th></th>
             </tr>
           </thead>
 
@@ -110,6 +142,32 @@
               </td>
               <td>{{ formatDate(todo.created_at) }}</td>
               <td>{{ formatDate(todo.updated_at) }}</td>
+              <td>
+                <button
+                  @click="openEditTodoModal(todo)"
+                  type="button"
+                  class="btn btn-outline-primary"
+                  data-bs-toggle="modal"
+                  data-bs-target="#todoModal">
+                  Editar
+                </button>
+              </td>
+              <td>
+                <button
+                  @click="removeTodo(todo.id)"
+                  type="button"
+                  class="btn btn-outline-danger">
+                  Remover
+                </button>
+              </td>
+              <td>
+                <button
+                  @click="goToDetails(todo.id)"
+                  type="button"
+                  class="btn btn-outline-success">
+                  Detalhes
+                </button>
+              </td>
             </tr>
           </tbody>
         </table>
@@ -190,6 +248,82 @@ export default {
       })
     },
 
+    removeTodo (todoId) {
+      this.axios.delete('https://gorest.co.in/public-api/todos/' + todoId,
+      {
+        headers: {
+          Authorization: 'Bearer 19cba85ee0aae784b1ebd27da60e9fda8750deaa140b5da0411cbcefc2f2a2c3'
+        }
+      }).then((response) => {
+        if (response.data.code === 204) {
+          this.getTodos()
+        } else {
+          alert(response.data.data.message)
+        }
+      })
+    },
+
+    addTodo () {
+      let apiTodo = {
+        user_id: this.maintenanceTodo.userId,
+        title: this.maintenanceTodo.title,
+        completed: this.maintenanceTodo.completed,
+      }
+
+      this.axios.post('https://gorest.co.in/public-api/todos/',
+      apiTodo,
+      {
+        headers: {
+          Authorization: 'Bearer 19cba85ee0aae784b1ebd27da60e9fda8750deaa140b5da0411cbcefc2f2a2c3'
+        }
+      }).then((response) => {
+        if (response.data.code === 201) {
+          this.getTodos()
+
+          this.resetMaintenanceTodo()
+        } else {
+          alert('Erro a criar tarefa!')
+        }
+      })
+    },
+
+    editTodo () {
+      let apiTodo = {
+        user_id: this.maintenanceTodo.userId,
+        title: this.maintenanceTodo.title,
+        completed: this.maintenanceTodo.completed,
+      }
+
+      this.axios.put('https://gorest.co.in/public-api/todos/' + this.maintenanceTodo.id,
+      apiTodo,
+      {
+        headers: {
+          Authorization: 'Bearer 19cba85ee0aae784b1ebd27da60e9fda8750deaa140b5da0411cbcefc2f2a2c3'
+        }
+      }).then((response) => {
+        if (response.data.code === 200) {
+          this.getTodos()
+
+          this.resetMaintenanceTodo()
+        } else {
+          alert('Erro ao editar tarefa!')
+        }
+      })
+    },
+
+    openEditTodoModal (todo) {
+      this.maintenanceTodo = {
+        id: todo.id,
+        userId: todo.user_id,
+        title: todo.title,
+        completed: todo.completed
+      }
+    },
+
+    goToDetails (todoId) {
+      this.$router.push('/todos/' + todoId)
+    },
+
     formatDate (date) {
       var splitedDate = date.split('.')[0]
 
@@ -210,6 +344,15 @@ export default {
       }
 
       this.getTodos()
+    },
+
+    resetMaintenanceTodo () {
+      this.maintenanceTodo = {
+        id: null,
+        userId: null,
+        title: '',
+        completed: false
+      }
     }
   },
 
